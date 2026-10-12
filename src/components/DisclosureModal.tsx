@@ -106,6 +106,11 @@ export const DisclosureModal: React.FC<DisclosureModalProps> = ({
               </div>
               <div>
                 {L.b}: <strong className="text-slate-200 print:text-slate-900">{customer?.name}</strong>, {customer?.address}
+                {customer?.phone && (
+                  <span>
+                    {' '}· {L.ph}: <strong className="text-slate-200 print:text-slate-900 font-mono">{customer.phone}</strong>
+                  </span>
+                )}
               </div>
             </div>
           </div>

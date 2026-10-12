@@ -30,9 +30,15 @@ export const Redemption: React.FC<RedemptionProps> = ({
 
   const activeLoans = loans.filter((l) => {
     if (l.status !== 'Active') return false;
-    const custName = getCust(l)?.name || '';
+    const cust = getCust(l);
+    const custName = cust?.name || '';
+    const custPhone = cust?.phone || '';
     const q = searchQuery.toLowerCase();
-    return l.serialNo.toLowerCase().includes(q) || custName.toLowerCase().includes(q);
+    return (
+      l.serialNo.toLowerCase().includes(q) ||
+      custName.toLowerCase().includes(q) ||
+      custPhone.toLowerCase().includes(q)
+    );
   });
 
   activeLoans.sort((a, b) => {
@@ -214,7 +220,7 @@ export const Redemption: React.FC<RedemptionProps> = ({
                   <div>
                     <h3 className="text-xl font-bold text-slate-100">{cust?.name}</h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      #{currentLoan.serialNo} · {cust?.address} · Pledged {fd(currentLoan.loanDate)} · {currentLoan.interestRate}%/mo
+                      #{currentLoan.serialNo} · {cust?.address}{cust?.phone ? ` · ${cust.phone}` : ''} · Pledged {fd(currentLoan.loanDate)} · {currentLoan.interestRate}%/mo
                     </p>
                   </div>
                   <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">

@@ -1,6 +1,8 @@
-// Centralized IndexedDB database setup, migration ladder (MIG), and CRUD operations
+import { Customer } from '../types';
 
-export const MIG = [
+export type { Customer };
+
+export const MIG: ((db: IDBDatabase, tx?: IDBTransaction) => void)[] = [
   (db: IDBDatabase) => {
     const mk = (n: string, k?: string, ix: string[] = []) => {
       const s = db.createObjectStore(n, { keyPath: k || 'id' });
@@ -14,6 +16,15 @@ export const MIG = [
     mk('audits', 'id');
     mk('meta', 'k');
   },
+  (db: IDBDatabase, tx?: IDBTransaction) => {
+    // Migration v2: Support optional customer mobile number with index
+    if (tx) {
+      const store = tx.objectStore('customers');
+      if (!store.indexNames.contains('phone')) {
+        store.createIndex('phone', 'phone', { unique: false });
+      }
+    }
+  },
 ];
 
 let DB: IDBDatabase | null = null;
@@ -23,8 +34,9 @@ export const openDB = (): Promise<IDBDatabase> => {
   return new Promise((ok, no) => {
     const r = indexedDB.open('suba_s1', MIG.length);
     r.onupgradeneeded = (e: any) => {
+      const tx = e.target?.transaction || (r as any).transaction;
       for (let v = e.oldVersion; v < MIG.length; v++) {
-        MIG[v](r.result);
+        MIG[v](r.result, tx);
       }
     };
     r.onsuccess = () => {

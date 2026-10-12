@@ -202,6 +202,7 @@ export const T = {
     vm: 'Valuation: lower of previous-day close and 30-day average, source',
     sg: 'Borrower signature',
     lg: 'Lender signature',
+    ph: 'Mobile',
   },
   ta: {
     t: 'கடன் வெளிப்படுத்தல் அறிக்கை',
@@ -227,5 +228,6 @@ export const T = {
     vm: 'மதிப்பீட்டுக்கு எடுத்த விலை (கிராமுக்கு ₹)',
     sg: 'கடன் பெறுபவர் கையொப்பம்',
     lg: 'கடன் வழங்குபவர் கையொப்பம்',
+    ph: 'கைபேசி',
   },
 };

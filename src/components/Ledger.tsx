@@ -29,9 +29,15 @@ export const Ledger: React.FC<LedgerProps> = ({
   const filteredLoans = loans
     .filter((l) => {
       if (filterStatus !== 'All' && l.status !== filterStatus) return false;
-      const custName = getCust(l)?.name || '';
+      const cust = getCust(l);
+      const custName = cust?.name || '';
+      const custPhone = cust?.phone || '';
       const q = searchQuery.toLowerCase();
-      return l.serialNo.toLowerCase().includes(q) || custName.toLowerCase().includes(q);
+      return (
+        l.serialNo.toLowerCase().includes(q) ||
+        custName.toLowerCase().includes(q) ||
+        custPhone.toLowerCase().includes(q)
+      );
     })
     .sort((a, b) => (b.loanDate < a.loanDate ? -1 : 1));
 
@@ -149,7 +155,8 @@ export const Ledger: React.FC<LedgerProps> = ({
                   {selectedCust?.name} · #{selectedLoan.serialNo}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {selectedCust?.address} · Pledged {fd(selectedLoan.loanDate)} · {selectedLoan.interestRate}%/mo
+                  {selectedCust?.address}
+                  {selectedCust?.phone ? ` · ${selectedCust.phone}` : ''} · Pledged {fd(selectedLoan.loanDate)} · {selectedLoan.interestRate}%/mo
                 </p>
               </div>
               <button

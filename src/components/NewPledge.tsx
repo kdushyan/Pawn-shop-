@@ -45,6 +45,7 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
 }) => {
   const [customerName, setCustomerName] = useState('');
   const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
   const lastLoan = [...loans].sort((a, b) => (b.createdAt < a.createdAt ? -1 : 1))[0];
   const [serialNo, setSerialNo] = useState(lastLoan ? nextSer(lastLoan.serialNo) : '1');
   const [loanDate, setLoanDate] = useState(today());
@@ -140,12 +141,21 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
 
     const trimmedName = customerName.trim();
     const trimmedAddr = address.trim();
+    const trimmedPhone = phone.trim();
     let cu = customers.find(
       (c) => c.name.toLowerCase() === trimmedName.toLowerCase() && c.address.toLowerCase() === trimmedAddr.toLowerCase()
     );
     const newCust = !cu;
     if (!cu) {
-      cu = { id: uid(), name: trimmedName, address: trimmedAddr, createdAt: new Date().toISOString() };
+      cu = {
+        id: uid(),
+        name: trimmedName,
+        address: trimmedAddr,
+        ...(trimmedPhone ? { phone: trimmedPhone } : {}),
+        createdAt: new Date().toISOString(),
+      };
+    } else if (trimmedPhone) {
+      cu = { ...cu, phone: trimmedPhone };
     }
 
     const bGold = bench('gold', rates, loanDate);
@@ -193,7 +203,7 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
     });
 
     const ops: CommitOp[] = [['loans', newLoan]];
-    if (newCust) {
+    if (newCust || trimmedPhone) {
       ops.push(['customers', cu]);
     }
     calculatedItems.forEach((i) => {
@@ -222,6 +232,7 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
     setSavedLoan(newLoan);
     setCustomerName('');
     setAddress('');
+    setPhone('');
     setSerialNo(nextSer(newLoan.serialNo));
     setItems([
       {
@@ -279,8 +290,8 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
 
       {/* Pledge Form */}
       <form onSubmit={handleSubmit} className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+          <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">Customer Name</label>
             <input
               required
@@ -293,7 +304,7 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
             />
           </div>
-          <div className="md:col-span-3">
+          <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">Address</label>
             <input
               required
@@ -302,6 +313,21 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
               onChange={(e) => {
                 handleStartTyping();
                 setAddress(e.target.value);
+              }}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1">
+              Customer Mobile Number <span className="text-slate-500 font-normal">(Optional)</span>
+            </label>
+            <input
+              type="tel"
+              placeholder="e.g. 9876543210"
+              value={phone}
+              onChange={(e) => {
+                handleStartTyping();
+                setPhone(e.target.value);
               }}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
             />
