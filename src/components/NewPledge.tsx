@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef, useEffect } from 'react';
 import { Customer, CollateralItem, Loan, MetalRate } from '../types';
 import { uid, mkEv } from '../utils/crypto';
 import { commit, CommitOp } from '../db/indexedDB';
@@ -14,7 +14,7 @@ import {
   PURITY_OPTIONS,
   CFG,
 } from '../utils/rules';
-import { Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Search, UserPlus, UserCheck, X } from 'lucide-react';
 
 interface OrnamentDraft {
   id: string;
@@ -46,6 +46,51 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
   const [customerName, setCustomerName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const customerDropdownRef = useRef<HTMLDivElement>(null);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        customerDropdownRef.current &&
+        !customerDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const trimmedQuery = customerName.trim().toLowerCase();
+  const matchingCustomers = trimmedQuery
+    ? customers.filter((c) =>
+        c.name.toLowerCase().includes(trimmedQuery) ||
+        c.address.toLowerCase().includes(trimmedQuery) ||
+        (c.phone && c.phone.includes(trimmedQuery))
+      ).slice(0, 8)
+    : [];
+
+  const handleSelectCustomer = (c: Customer) => {
+    handleStartTyping();
+    setSelectedCustomerId(c.id);
+    setCustomerName(c.name);
+    setAddress(c.address);
+    setPhone(c.phone || '');
+    setShowDropdown(false);
+  };
+
+  const handleAddNewCustomer = () => {
+    handleStartTyping();
+    setSelectedCustomerId(null);
+    setShowDropdown(false);
+    addressInputRef.current?.focus();
+  };
   const lastLoan = [...loans].sort((a, b) => (b.createdAt < a.createdAt ? -1 : 1))[0];
   const [serialNo, setSerialNo] = useState(lastLoan ? nextSer(lastLoan.serialNo) : '1');
   const [loanDate, setLoanDate] = useState(today());
@@ -142,20 +187,43 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
     const trimmedName = customerName.trim();
     const trimmedAddr = address.trim();
     const trimmedPhone = phone.trim();
-    let cu = customers.find(
-      (c) => c.name.toLowerCase() === trimmedName.toLowerCase() && c.address.toLowerCase() === trimmedAddr.toLowerCase()
-    );
-    const newCust = !cu;
+
+    let cu: Customer | undefined;
+    let newCust = false;
+
+    if (selectedCustomerId) {
+      const existing = customers.find((c) => c.id === selectedCustomerId);
+      if (existing) {
+        cu = {
+          ...existing,
+          name: trimmedName,
+          address: trimmedAddr,
+          phone: trimmedPhone || existing.phone,
+        };
+      }
+    }
+
     if (!cu) {
-      cu = {
-        id: uid(),
-        name: trimmedName,
-        address: trimmedAddr,
-        ...(trimmedPhone ? { phone: trimmedPhone } : {}),
-        createdAt: new Date().toISOString(),
-      };
-    } else if (trimmedPhone) {
-      cu = { ...cu, phone: trimmedPhone };
+      const existing = customers.find(
+        (c) =>
+          c.name.toLowerCase() === trimmedName.toLowerCase() &&
+          c.address.toLowerCase() === trimmedAddr.toLowerCase()
+      );
+      if (existing) {
+        cu = {
+          ...existing,
+          phone: trimmedPhone || existing.phone,
+        };
+      } else {
+        newCust = true;
+        cu = {
+          id: uid(),
+          name: trimmedName,
+          address: trimmedAddr,
+          ...(trimmedPhone ? { phone: trimmedPhone } : {}),
+          createdAt: new Date().toISOString(),
+        };
+      }
     }
 
     const bGold = bench('gold', rates, loanDate);
@@ -203,7 +271,7 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
     });
 
     const ops: CommitOp[] = [['loans', newLoan]];
-    if (newCust || trimmedPhone) {
+    if (newCust || trimmedPhone || (selectedCustomerId && cu)) {
       ops.push(['customers', cu]);
     }
     calculatedItems.forEach((i) => {
@@ -230,6 +298,7 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
     await commit(ops);
     await onRefresh();
     setSavedLoan(newLoan);
+    setSelectedCustomerId(null);
     setCustomerName('');
     setAddress('');
     setPhone('');
@@ -291,22 +360,112 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
       {/* Pledge Form */}
       <form onSubmit={handleSubmit} className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Customer Name</label>
-            <input
-              required
-              placeholder="e.g. Ramesh K"
-              value={customerName}
-              onChange={(e) => {
-                handleStartTyping();
-                setCustomerName(e.target.value);
-              }}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
-            />
+          <div className="relative" ref={customerDropdownRef}>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-semibold text-slate-400">Customer Name</label>
+              {selectedCustomerId && (
+                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1">
+                  <UserCheck className="w-3 h-3" /> Linked
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                required
+                placeholder="Search or enter customer name..."
+                value={customerName}
+                onChange={(e) => {
+                  handleStartTyping();
+                  setCustomerName(e.target.value);
+                  setSelectedCustomerId(null);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => {
+                  if (customerName.trim().length > 0) setShowDropdown(true);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-8 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
+              />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+              {customerName && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerName('');
+                    setSelectedCustomerId(null);
+                    setShowDropdown(false);
+                  }}
+                  className="absolute right-2.5 top-2.5 p-0.5 text-slate-500 hover:text-slate-300 rounded"
+                  title="Clear"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Customer Search & Auto-Fill Dropdown */}
+            {showDropdown && customerName.trim().length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-30 overflow-hidden max-h-64 overflow-y-auto divide-y divide-slate-800">
+                {matchingCustomers.length > 0 ? (
+                  <>
+                    <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider font-bold text-slate-400 bg-slate-800/80 flex items-center justify-between">
+                      <span>Matching Customers ({matchingCustomers.length})</span>
+                      <span className="text-slate-500 font-normal">Click to auto-fill</span>
+                    </div>
+                    {matchingCustomers.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectCustomer(c)}
+                        className="w-full text-left px-3 py-2.5 hover:bg-slate-800 transition flex items-start justify-between gap-2 group"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-100 group-hover:text-amber-300 transition truncate flex items-center gap-1.5">
+                            <span>{c.name}</span>
+                          </div>
+                          <div className="text-xs text-slate-400 truncate mt-0.5">
+                            {c.address}
+                          </div>
+                        </div>
+                        {c.phone && (
+                          <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60 shrink-0">
+                            {c.phone}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                    <div className="p-2 bg-slate-950/60 border-t border-slate-800">
+                      <button
+                        type="button"
+                        onClick={handleAddNewCustomer}
+                        className="w-full py-1.5 px-3 text-xs font-semibold text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 rounded-lg transition flex items-center justify-center gap-1.5"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Add "{customerName.trim()}" as New Customer</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-3 text-center space-y-2 bg-slate-900">
+                    <p className="text-xs text-slate-400">
+                      No matching customer found for <strong className="text-slate-200 font-medium">"{customerName.trim()}"</strong>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleAddNewCustomer}
+                      className="w-full py-2 px-3 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Add New Customer</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">Address</label>
             <input
+              ref={addressInputRef}
               required
               placeholder="e.g. 14 South St, Salem"
               value={address}
