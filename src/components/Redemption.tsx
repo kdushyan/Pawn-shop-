@@ -187,7 +187,7 @@ export const Redemption: React.FC<RedemptionProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-sm text-slate-100">{inr(l.currentPrincipal)}</div>
+                      <div className="font-bold text-base text-amber-300 font-mono">{inr(l.currentPrincipal)}</div>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-bold inline-block mt-1 ${
                           overCap
@@ -235,19 +235,19 @@ export const Redemption: React.FC<RedemptionProps> = ({
 
               {/* Dues Breakdown */}
               <div className="space-y-2.5 border-t border-b border-slate-700/70 py-4 text-sm">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between items-center text-slate-300">
                   <span>Principal Outstanding:</span>
-                  <span className="font-semibold text-slate-100">{inr(currentLoan.currentPrincipal)}</span>
+                  <span className="font-black text-lg text-amber-300 font-mono">{inr(currentLoan.currentPrincipal)}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
                   <span>
                     {lv.d} days elapsed ({lv.m} extra month(s) beyond 32-day prepaid month):
                   </span>
-                  <span className="font-semibold text-amber-400">{inr(lv.intr)}</span>
+                  <span className="font-semibold text-amber-400 font-mono">{inr(lv.intr)}</span>
                 </div>
                 <div className="flex justify-between items-center text-base pt-2 border-t border-slate-700/50">
                   <span className="font-bold text-slate-100">Total to Collect Today:</span>
-                  <span className="text-2xl font-bold text-emerald-400">{inr(lv.dues)}</span>
+                  <span className="text-2xl font-black text-emerald-400 font-mono">{inr(lv.dues)}</span>
                 </div>
                 <div className="flex justify-between text-xs text-slate-400 pt-1">
                   <span>Pledge-day Collateral Value:</span>

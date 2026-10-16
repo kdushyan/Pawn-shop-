@@ -4,6 +4,8 @@ import { uid, mkEv } from '../utils/crypto';
 import { commit, CommitOp } from '../db/indexedDB';
 import {
   today,
+  addD,
+  fd,
   nextSer,
   bench,
   r2,
@@ -14,7 +16,7 @@ import {
   PURITY_OPTIONS,
   CFG,
 } from '../utils/rules';
-import { Plus, Trash2, CheckCircle2, Search, UserPlus, UserCheck, X } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Search, UserPlus, UserCheck, X, Calendar } from 'lucide-react';
 
 interface OrnamentDraft {
   id: string;
@@ -500,14 +502,91 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400 font-mono"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1">Date</label>
-            <input
-              type="date"
-              value={loanDate}
-              onChange={(e) => setLoanDate(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
-            />
+          {/* Multi-Date Provision & Date Tabs */}
+          <div className="space-y-1.5 md:col-span-2">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-semibold text-slate-400">Pledge Date</label>
+              <span
+                className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-full ${
+                  loanDate === today()
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : loanDate < today()
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                }`}
+              >
+                {loanDate === today()
+                  ? '● Today'
+                  : loanDate === addD(today(), -1)
+                  ? '● Yesterday'
+                  : '● Custom Date'}
+                : {fd(loanDate)}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+              {/* Quick Multi-Date Tabs */}
+              <div className="inline-flex p-1 bg-slate-900 border border-slate-700 rounded-xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStartTyping();
+                    setLoanDate(today());
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    loanDate === today()
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStartTyping();
+                    setLoanDate(addD(today(), -1));
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    loanDate === addD(today(), -1)
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Yesterday
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStartTyping();
+                    if (loanDate === today() || loanDate === addD(today(), -1)) {
+                      setLoanDate(addD(today(), -2));
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                    loanDate !== today() && loanDate !== addD(today(), -1)
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Any Date
+                </button>
+              </div>
+
+              {/* Exact Date Picker Input */}
+              <div className="relative flex-1 min-w-[160px]">
+                <input
+                  type="date"
+                  value={loanDate}
+                  onChange={(e) => {
+                    handleStartTyping();
+                    if (e.target.value) setLoanDate(e.target.value);
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400 cursor-pointer"
+                  title="Select any pledge date"
+                />
+              </div>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">Interest % / Month</label>
@@ -539,13 +618,13 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
             </button>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {items.map((it, idx) => {
               const calcIt = calculatedItems[idx];
               return (
                 <div
                   key={it.id}
-                  className="bg-slate-900/70 border border-slate-700/60 rounded-xl p-3.5 space-y-2 transition-all hover:border-slate-600"
+                  className="bg-slate-900/70 border border-slate-700/60 rounded-xl p-4 space-y-3 transition-all hover:border-slate-600 shadow-sm"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2.5 items-end">
                     <div className="md:col-span-2">
@@ -606,30 +685,41 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between pt-1 text-xs gap-2">
-                    <div className="text-slate-400">
+                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-800/80 gap-3">
+                    <div className="text-xs text-slate-400">
                       Assessed collateral:{' '}
                       <span className="font-semibold text-slate-200">
                         {calcIt?.assessedVal != null ? inr(calcIt.assessedVal) : '—'}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-[11px] font-semibold text-slate-400">Loan on item (₹):</label>
-                        <input
-                          type="number"
-                          placeholder="e.g. 50000"
-                          value={it.principalValue}
-                          onChange={(e) => updateOrnament(it.id, 'principalValue', e.target.value)}
-                          className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-amber-400 font-mono"
-                        />
+                    <div className="flex items-center gap-3">
+                      {/* ENLARGED LOAN AMOUNT INPUT */}
+                      <div className="flex items-center gap-2 bg-slate-950/80 p-1.5 sm:p-2 rounded-xl border border-slate-700 shadow-sm">
+                        <label className="text-xs font-bold text-amber-400 whitespace-nowrap pl-1">
+                          Loan Amount (₹):
+                        </label>
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={it.principalValue}
+                            onChange={(e) => updateOrnament(it.id, 'principalValue', e.target.value)}
+                            className="w-36 sm:w-48 bg-slate-900 border-2 border-amber-500/40 focus:border-amber-400 rounded-lg px-3 py-1.5 text-base sm:text-lg font-bold text-amber-300 font-mono focus:outline-none shadow-inner"
+                          />
+                        </div>
+                        {calcIt.principal > 0 && (
+                          <span className="hidden sm:inline text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                            {inr(calcIt.principal)}
+                          </span>
+                        )}
                       </div>
+
                       {items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeOrnament(it.id)}
-                          className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition"
+                          className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition"
                           title="Remove item"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -643,23 +733,41 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
           </div>
         </div>
 
-        {/* Real-Time Assessment & LTV Metrics */}
-        <div className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 space-y-2.5">
-          <div className="flex justify-between items-center text-sm py-1 border-b border-slate-800">
+        {/* Real-Time Assessment & LTV Metrics with Enlarged Loan Display */}
+        <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-5 space-y-3.5">
+          <div className="flex justify-between items-center text-sm py-1.5 border-b border-slate-800">
             <span className="text-slate-400">Collateral value (benchmark):</span>
-            <span className="font-semibold text-slate-100">{inr(totalCollateralVal)}</span>
+            <span className="font-semibold text-slate-100 text-base">{inr(totalCollateralVal)}</span>
           </div>
-          <div className="flex justify-between items-center text-sm py-1 border-b border-slate-800">
-            <span className="text-slate-400">Principal (requested loan):</span>
-            <span className="font-semibold text-slate-100">{inr(totalPrincipal)}</span>
-          </div>
-          <div className="flex justify-between items-center text-sm py-1 border-b border-slate-800">
-            <span className="text-slate-400">
-              Cash to customer (after first-month interest {inr(upfrontInterest)}):
+
+          {/* Prominently Enlarged Total Loan Amount */}
+          <div className="flex justify-between items-center py-2.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
+            <div>
+              <span className="block text-xs uppercase tracking-wider font-bold text-amber-400">
+                Principal (Total Loan Amount)
+              </span>
+              <span className="text-[11px] text-slate-400">Total requested pledge value</span>
+            </div>
+            <span className="font-black text-2xl sm:text-3xl text-amber-300 font-mono tracking-tight">
+              {inr(totalPrincipal)}
             </span>
-            <span className="font-bold text-amber-400">{inr(cashDisbursed)}</span>
           </div>
-          <div className="flex justify-between items-center text-sm py-1 border-b border-slate-800">
+
+          <div className="flex justify-between items-center py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+            <div>
+              <span className="block text-xs uppercase tracking-wider font-bold text-emerald-400">
+                Cash Handed to Customer
+              </span>
+              <span className="text-[11px] text-slate-400">
+                After 1st-mo upfront interest ({inr(upfrontInterest)})
+              </span>
+            </div>
+            <span className="font-black text-2xl sm:text-3xl text-emerald-400 font-mono tracking-tight">
+              {inr(cashDisbursed)}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center text-sm py-1.5 border-b border-slate-800">
             <span className="text-slate-400">Max eligible loan (RBI tier rule):</span>
             <span className="font-semibold text-slate-200">{inr(maxEligible)}</span>
           </div>
@@ -698,9 +806,9 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
 
         <button
           type="submit"
-          className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-base shadow-md transition duration-150 active:scale-[0.99]"
+          className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-lg shadow-lg hover:shadow-amber-500/20 transition duration-150 active:scale-[0.99] flex items-center justify-center gap-2"
         >
-          Save Pledge
+          <span>Save Pledge</span>
         </button>
       </form>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Loan, CollateralItem, Customer, ChainEvent, MetalRate } from '../types';
-import { LV, fd, inr, pc, checks, score, cap } from '../utils/rules';
-import { Search, FileText, CheckCircle2, XCircle, Clock, ShieldCheck } from 'lucide-react';
+import { LV, fd, inr, pc, checks, score, cap, today, addD } from '../utils/rules';
+import { Search, FileText, CheckCircle2, XCircle, Clock, ShieldCheck, Calendar } from 'lucide-react';
 
 interface LedgerProps {
   loans: Loan[];
@@ -22,13 +22,31 @@ export const Ledger: React.FC<LedgerProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'Active' | 'Closed' | 'All'>('Active');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'yesterday' | 'week' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
 
   const getCust = (loan: Loan) => customers.find((c) => c.id === loan.customerId);
 
   const filteredLoans = loans
     .filter((l) => {
+      // Status filter
       if (filterStatus !== 'All' && l.status !== filterStatus) return false;
+
+      // Multi-Date filter
+      if (dateFilter === 'today' && l.loanDate !== today()) return false;
+      if (dateFilter === 'yesterday' && l.loanDate !== addD(today(), -1)) return false;
+      if (dateFilter === 'week') {
+        const weekAgo = addD(today(), -7);
+        if (l.loanDate < weekAgo || l.loanDate > today()) return false;
+      }
+      if (dateFilter === 'custom') {
+        if (customStartDate && l.loanDate < customStartDate) return false;
+        if (customEndDate && l.loanDate > customEndDate) return false;
+      }
+
+      // Search query
       const cust = getCust(l);
       const custName = cust?.name || '';
       const custPhone = cust?.phone || '';
@@ -56,31 +74,90 @@ export const Ledger: React.FC<LedgerProps> = ({
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-          <input
-            placeholder="Search name or serial..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
-          />
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+            <input
+              placeholder="Search name, mobile or serial..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
+            />
+          </div>
+
+          {/* Status Tabs */}
+          <div className="flex gap-2 self-start sm:self-auto">
+            {(['Active', 'Closed', 'All'] as const).map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                  filterStatus === status
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex gap-2 self-start sm:self-auto">
-          {(['Active', 'Closed', 'All'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
-                filterStatus === status
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {status}
-            </button>
-          ))}
+        {/* Multi-Date Filter Bar */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800/80">
+          <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mr-1">
+            <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <span>Date Range:</span>
+          </span>
+
+          <div className="inline-flex p-1 bg-slate-800/90 border border-slate-700/80 rounded-xl">
+            {(
+              [
+                ['all', 'All Dates'],
+                ['today', 'Today'],
+                ['yesterday', 'Yesterday'],
+                ['week', 'Last 7 Days'],
+                ['custom', 'Custom Range'],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                onClick={() => setDateFilter(mode)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                  dateFilter === mode
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Range Picker when 'custom' is active */}
+          {dateFilter === 'custom' && (
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
+              <span className="text-slate-400">From:</span>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-0.5 text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+              />
+              <span className="text-slate-400">To:</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-0.5 text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+              />
+            </div>
+          )}
+
+          <span className="text-xs text-slate-500 font-mono ml-auto">
+            Showing {filteredLoans.length} of {loans.length} pledges
+          </span>
         </div>
       </div>
 
@@ -96,17 +173,22 @@ export const Ledger: React.FC<LedgerProps> = ({
             <div
               key={l.id}
               onClick={() => setSelectedLoanId(l.id)}
-              className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 rounded-2xl p-4 cursor-pointer transition shadow-sm space-y-3"
+              className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 rounded-2xl p-4 cursor-pointer transition shadow-sm space-y-3 group"
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-bold text-base text-slate-100">{c?.name || 'Unknown'}</h4>
+                  <h4 className="font-bold text-base text-slate-100 group-hover:text-amber-300 transition">
+                    {c?.name || 'Unknown'}
+                  </h4>
                   <p className="text-xs text-slate-400 mt-0.5 font-mono">
                     #{l.serialNo} · {fd(l.loanDate)}
                   </p>
                 </div>
+                {/* ENLARGED LOAN AMOUNT DISPLAY IN CARD */}
                 <div className="text-right">
-                  <span className="font-bold text-base text-slate-100">{inr(l.currentPrincipal)}</span>
+                  <span className="font-black text-lg sm:text-xl text-amber-300 font-mono tracking-tight block">
+                    {inr(l.currentPrincipal)}
+                  </span>
                   <div className="text-[11px] text-slate-400 mt-0.5">{l.interestRate}%/mo</div>
                 </div>
               </div>
@@ -169,27 +251,27 @@ export const Ledger: React.FC<LedgerProps> = ({
 
             {/* Financial Card */}
             <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4 space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Principal outstanding:</span>
-                <span className="font-semibold text-slate-100">{inr(selectedLoan.currentPrincipal)}</span>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-400 font-medium">Principal outstanding:</span>
+                <span className="font-black text-xl text-amber-300 font-mono">{inr(selectedLoan.currentPrincipal)}</span>
               </div>
               {selectedLoan.disbursed != null && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-400">
                     Cash handed over (after {inr(selectedLoan.upfront)} 1st-mo int):
                   </span>
-                  <span className="font-semibold text-emerald-400">{inr(selectedLoan.disbursed)}</span>
+                  <span className="font-bold text-emerald-400 font-mono text-base">{inr(selectedLoan.disbursed)}</span>
                 </div>
               )}
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-slate-400">
                   {selectedLv.d} days ({selectedLv.m} extra month(s)):
                 </span>
-                <span className="font-semibold text-amber-400">{inr(selectedLv.intr)}</span>
+                <span className="font-semibold text-amber-400 font-mono">{inr(selectedLv.intr)}</span>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-slate-700/60 font-bold">
-                <span>Total to collect today:</span>
-                <span className="text-lg text-emerald-400">{inr(selectedLv.dues)}</span>
+              <div className="flex justify-between items-center pt-2.5 border-t border-slate-700/60">
+                <span className="font-bold text-slate-100">Total to collect today:</span>
+                <span className="text-2xl font-black text-emerald-400 font-mono">{inr(selectedLv.dues)}</span>
               </div>
               <div className="flex justify-between text-xs text-slate-400 pt-1">
                 <span>Collateral value (at pledge):</span>
