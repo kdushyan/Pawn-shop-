@@ -35,7 +35,51 @@
     background-color: white !important;
     color: black !important;
   }
-  nav, .print\\:hidden {
+  nav, .print\:hidden {
     display: none !important;
   }
 }
+
+/* Visual UI Component styling tokens */
+.text-label-bold {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #cbd5e1;
+  display: block;
+}
+
+.font-label-bold {
+  font-weight: 700;
+}
+
+.border-outline-variant {
+  border-color: #cbd5e1;
+}
+
+.focus-glow {
+  transition: all 0.2s ease-in-out;
+}
+
+.focus-glow:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25), 0 0 16px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Styling for white inputs and date pickers */
+input.bg-white,
+input[type="date"].bg-white,
+input[name="loanDate"] {
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+input[name="loanDate"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.2);
+  transition: transform 0.15s ease;
+}
+
+input[name="loanDate"]::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.1);
+}
+

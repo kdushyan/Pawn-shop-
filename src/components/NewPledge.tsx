@@ -502,91 +502,20 @@ export const NewPledge: React.FC<NewPledgeProps> = ({
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-400 font-mono"
             />
           </div>
-          {/* Multi-Date Provision & Date Tabs */}
-          <div className="space-y-1.5 md:col-span-2">
-            <div className="flex justify-between items-center">
-              <label className="block text-xs font-semibold text-slate-400">Pledge Date</label>
-              <span
-                className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded-full ${
-                  loanDate === today()
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : loanDate < today()
-                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                    : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                }`}
-              >
-                {loanDate === today()
-                  ? '● Today'
-                  : loanDate === addD(today(), -1)
-                  ? '● Yesterday'
-                  : '● Custom Date'}
-                : {fd(loanDate)}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
-              {/* Quick Multi-Date Tabs */}
-              <div className="inline-flex p-1 bg-slate-900 border border-slate-700 rounded-xl shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleStartTyping();
-                    setLoanDate(today());
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    loanDate === today()
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleStartTyping();
-                    setLoanDate(addD(today(), -1));
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    loanDate === addD(today(), -1)
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Yesterday
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleStartTyping();
-                    if (loanDate === today() || loanDate === addD(today(), -1)) {
-                      setLoanDate(addD(today(), -2));
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    loanDate !== today() && loanDate !== addD(today(), -1)
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Any Date
-                </button>
-              </div>
-
-              {/* Exact Date Picker Input */}
-              <div className="relative flex-1 min-w-[160px]">
-                <input
-                  type="date"
-                  value={loanDate}
-                  onChange={(e) => {
-                    handleStartTyping();
-                    if (e.target.value) setLoanDate(e.target.value);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400 cursor-pointer"
-                  title="Select any pledge date"
-                />
-              </div>
-            </div>
+          {/* Visual UI Date Component */}
+          <div className="space-y-2">
+            <label className="text-label-bold font-label-bold">Date</label>
+            <input
+              required
+              name="loanDate"
+              value={loanDate}
+              onChange={(e) => {
+                handleStartTyping();
+                if (e.target.value) setLoanDate(e.target.value);
+              }}
+              className="w-full bg-white border border-outline-variant rounded p-4 focus-glow outline-none"
+              type="date"
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">Interest % / Month</label>
